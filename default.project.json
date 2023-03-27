@@ -1,0 +1,35 @@
+{
+  "name": "Animation",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "ROJO": {
+        "$path": "src/ReplicatedStorage"
+      }
+    },
+
+    "ServerScriptService": {
+      "ROJO": {
+        "$path": "src/ServerScriptService"
+      }
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "ROJO": {
+          "$path": "src/PlayerScripts"
+        }
+      },
+      "StarterCharacterScripts": {
+        "$path": "src/CharacterScripts"
+      }
+    },
+
+    "ServerStorage": {
+      "ROJO": {
+        "$path": "src/ServerStorage"
+      }
+    }
+  }
+}

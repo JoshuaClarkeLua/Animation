@@ -1,0 +1,13 @@
+
+
+
+## Adjust to slopes (standing)
+- Start by adjusting the height of the character based on the slope angle
+	to make sure both feet can touch the ground without hyperextending.
+	(i.e. the knees should be bent a bit)
+
+- IK should activate only when the feet are nearly touching ground.
+	Otherwise, it will prevent the animation from moving the legs up and down.
+
+- NOTE: Animation controller overrides Motor6D after RunService.PreAnimation but BEFORE RunService.Stepped
+		I.e. when RunService.Stepped is called, the Motor6D is in the correct position of the animation.
