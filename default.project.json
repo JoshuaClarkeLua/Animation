@@ -8,13 +8,11 @@
         "$path": "src/ReplicatedStorage"
       }
     },
-
     "ServerScriptService": {
       "ROJO": {
         "$path": "src/ServerScriptService"
       }
     },
-
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "ROJO": {
@@ -23,12 +21,6 @@
       },
       "StarterCharacterScripts": {
         "$path": "src/CharacterScripts"
-      }
-    },
-
-    "ServerStorage": {
-      "ROJO": {
-        "$path": "src/ServerStorage"
       }
     }
   }
