@@ -10,12 +10,14 @@ local InputService = game:GetService('UserInputService')
 local ContextActionService = game:GetService('ContextActionService')
 
 local libs = game:GetService('ReplicatedStorage').ROJO
+local Debug = require(libs.Debug)
 local Lerp = require(libs.Lerp)
 local Vec3 = require(libs.Vec3)
 
 local GRAPPLE_KEY = Enum.KeyCode.Space
 local RAY_PARAMS = RaycastParams.new()
-local GRAPPLE_SPEED = 5
+local THRUST_FORCE = 30
+local WINCH_SPEED = THRUST_FORCE*8
 local GRAPPLE_MAX_DIST = 1000000
 local GRAPPLE_LEN = 20
 
@@ -97,14 +99,16 @@ RunService.PostSimulation:Connect(function(dt)
 		if humanoid.MoveDirection.Magnitude > 0 then
 			forceDir = Vec3.projectOnPlane(humanoid.MoveDirection, Vector3.new(grappleDirU.X,0,grappleDirU.Z))
 		end
-		rootPart:ApplyImpulse(forceDir*GRAPPLE_SPEED*rootPart.AssemblyMass)
+		rootPart:ApplyImpulse(forceDir*THRUST_FORCE*rootPart.AssemblyMass*dt)
 
 		local rope = grapplePart:FindFirstChildOfClass('RopeConstraint')
-		GRAPPLE_LEN -= 4
+		GRAPPLE_LEN -= WINCH_SPEED*dt
 		rope.Length = GRAPPLE_LEN
 		lastGrappleDir = forceDir
 	end
 	lastVel = vel
+	--rootPart.AssemblyAngularVelocity = Vector3.zero
+	--rootPart.CFrame = CFrame.new(rootPart.CFrame.Position)*CFrame.fromAxisAngle(Vector3.new(0,1,0, math.rad(rootPart.))
 end)
 
 RunService.PreSimulation:Connect(function(dt)
@@ -119,9 +123,12 @@ RunService.PreSimulation:Connect(function(dt)
 		--
 		local rayDirection = -charBox.UpVector*(size.Y/1.99+velocityExtra)
 		local res = workspace:Raycast(rayOrigin, rayDirection, params)
+		local p = Debug.drawRay(rayOrigin, rayDirection)
 		if res then
+			p.Color = Color3.new(1,0,0)
 			floorMaterial = res.Instance.Material
 			humanoid:ChangeState(Enum.HumanoidStateType.Landed)
 		end
 	end
+
 end)
