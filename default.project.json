@@ -6,6 +6,9 @@
     "ReplicatedStorage": {
       "ROJO": {
         "$path": "src/ReplicatedStorage"
+      },
+      "Packages":{
+        "$path": "Packages"
       }
     },
     "ServerScriptService": {

@@ -8,7 +8,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService('ServerStorage')
 
-local GUN_MODELS = ServerStorage.Guns
+local GUN_MODELS = workspace.Guns
 
 local GunSystem = {}
 local characters: {[Model]: CharacterSetup} = {}
