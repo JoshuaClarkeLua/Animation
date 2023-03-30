@@ -53,6 +53,7 @@ local function init()
 
 end
 
+
 -- RunService.Stepped:Connect(function()
 -- 	local dir = -rootPart.CFrame.UpVector*100
 -- 	local origin, res

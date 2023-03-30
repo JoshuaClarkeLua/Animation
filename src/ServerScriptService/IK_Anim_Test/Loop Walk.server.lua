@@ -1,7 +1,12 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService('RunService')
 
+local libs = ReplicatedStorage.ROJO
+local AssemblyUtil = require(libs.AssemblyUtil)
+
 local DUMMY = workspace.DUMMY
+local DUMMY2 = workspace.DUMMY2
 local WALK_ANIM = workspace.DUMMY.WalkAnim
 
 local humanoid = DUMMY.Humanoid
@@ -60,12 +65,17 @@ end
 	- Checks if applied animation transform makes feet touch ground. Sets IKControls accordingly
 ]]
 local function preIK(dt: number)
-	--checkFoot(DUMMY, DUMMY.IK, 'Left')
+	local motors = AssemblyUtil.getAssemblyMotors(DUMMY)
+	local cfs = AssemblyUtil.getAssemblyAnimCFrames(motors)
+	for part,cf in pairs(cfs) do
+		DUMMY2[part.Name].CFrame = DUMMY.HumanoidRootPart.CFrame*cf
+	end
 end
 
 local function postIK(dt: number)
 
 end
 
+local motors = AssemblyUtil.getAssemblyMotors(DUMMY)
 RunService.Stepped:Connect(preIK)
 RunService.PreSimulation:Connect(postIK)
