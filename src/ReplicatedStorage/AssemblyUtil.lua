@@ -68,7 +68,8 @@ local getAssemblyAnimCFrames = nil
 getAssemblyAnimCFrames = function(root: BasePart, motors: {MotorHierarchyChild}, cframes: {[BasePart]: CFrame})
 	local rootCF = cframes[root] or CFrame.new()
 	for i,motor in ipairs(motors) do
-		cframes[motor.part] = rootCF*motor.motor.C0*motor.motor.C1:Inverse()*motor.motor.Transform
+		local cf = rootCF*motor.motor.C0*motor.motor.Transform*motor.motor.C1:Inverse()
+		cframes[motor.part] = cf
 		if motor.children then
 			getAssemblyAnimCFrames(motor.part, motor.children, cframes)
 		end
@@ -79,7 +80,8 @@ end
 --[[
 	getAssemblyMotors
 
-
+	Makes a hierarchical list of the motors present in the assembly within model
+	starting from motors connected to the AssemblyRootPart.
 ]]
 function AssemblyUtil.getAssemblyMotors(model: Model): MotorHierarchy
 	local rootPart = getAssemblyRootPart(model)
@@ -92,6 +94,14 @@ end
 
 --[[
 	getAssemblyAnimCFrames
+
+	Returns a list of CFrames by applying Motor6D C0, Transform, C1 properties
+	respectively starting from the motors which are connected to the AssemblyRootPart.
+	
+	The CFrames are meant to be in object space (i.e. relative to the AssemblyRootPart)
+
+	Use this to get an assembly's raw animation CFrame data prior to other roblox
+	processes modifying the Motor6D.Transform property (i.e. IKControl)
 ]]
 function AssemblyUtil.getAssemblyAnimCFrames(motors: MotorHierarchy)
 	return getAssemblyAnimCFrames(motors.part,motors.children,{})
