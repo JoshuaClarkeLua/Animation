@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService('RunService')
 
 local libs = ReplicatedStorage.ROJO
@@ -102,10 +101,7 @@ local function preIK(dt: number)
 end
 
 local function postIK(dt: number)
-	-- print(workspace.B2.CFrame.UpVector)
-	-- print(leftFoot.CFrame.UpVector)
 end
 
-local motors = AssemblyUtil.getAssemblyMotors(DUMMY)
 RunService.Stepped:Connect(preIK)
 RunService.PreSimulation:Connect(postIK)
