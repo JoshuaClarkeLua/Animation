@@ -16,9 +16,10 @@ local animator = humanoid.Animator
 local animTrack = animator:LoadAnimation(WALK_ANIM)
 
 animTrack.Looped = true
-animTrack:Play(0,1,.05)
+animTrack:Play(0,1,.75)
 
 local leftFoot = DUMMY.LeftFoot
+local rightFoot = DUMMY.RightFoot
 local IK = {
 	LeftFoot = DUMMY.IK.LeftFoot,
 	RightFoot = DUMMY.IK.RightFoot,
@@ -32,7 +33,8 @@ params.FilterDescendantsInstances = {DUMMY}
 --[[
 	IK Stuff
 ]]
-local FOOT_DISTANCE_ANGLE_LOCK_THRESH = 1
+local FOOT_LOCK_DIST = .4
+local FOOT_MAXLOCK_DIST = .1
 local function applyFootIK(rootCF: CFrame, animCF: CFrame, footSize: Vector3, IK: IKControl)
 	local footCF = rootCF*animCF
 
@@ -40,81 +42,34 @@ local function applyFootIK(rootCF: CFrame, animCF: CFrame, footSize: Vector3, IK
 	local footDownV = -footCF.UpVector
 	local rayDirection = (footCF.Position-rootCF.Position)
 	local rayDirU = rayDirection.Unit
-	rayDirection = rayDirection+rayDirU*(footSize.Magnitude/2+FOOT_DISTANCE_ANGLE_LOCK_THRESH)
+	rayDirection = rayDirection+rayDirU*(footSize.Magnitude/2+FOOT_LOCK_DIST)
 	local rayOrigin = rootCF.Position
 	local ray = workspace:Raycast(rayOrigin, rayDirection, params)
-	--Debug.drawRay(rayOrigin, rayDirection, true)
 	if ray then
 		local pos, target: BasePart, normal = ray.Position, ray.Instance, ray.Normal
-		local dist = (ray.Position - footCF.Position).Magnitude
-		if dist >= 0 and dist < FOOT_DISTANCE_ANGLE_LOCK_THRESH then
-			Debug.drawRay(rayOrigin, rayDirection, true).Color = Color3.new(1,0,0)
-			-- Project foot lookvector onto plane defined by normal. Use angle between 
-			-- projected lookvector and foot lookvector to determine rotation angle
+		local footDist = ray.Position - footCF.Position + footSize*Vector3.yAxis/2
+		
+		local dist = footDist.Unit:Dot(normal) > 0 and 0 or footDist.Magnitude
+		if dist < FOOT_LOCK_DIST then
 
-			-- You basically don't need IK for this, use IK only for foot/leg position.
-			-- Rotate foot Motor6D directly instead.
-
-			-- REMEMBER: rotation is applied already by setting IK target
-
-			--local offset = CFrame.fromAxisAngle(footCF.UpVector, angle)
-			local weight = 1-dist/FOOT_DISTANCE_ANGLE_LOCK_THRESH
-			IK.Enabled = true
-			--IK.Target = target
-
-			-- local rot = rootCF.UpVector:Dot(normal)
-			-- if rot == 1 then return end
-			-- rot = math.acos(rot)
+			local rot = rootCF.UpVector:Dot(normal)
+			if rot == 1 then IK.Enabled = false; return end
+			rot = math.acos(rot)
 			local axis = rootCF.UpVector:Cross(normal).Unit
+			if axis.Magnitude ~= axis.Magnitude then IK.Enabled = false; return end
 			local incline = axis:Cross(normal)
-			local inclineDir = rootCF.UpVector:Cross(axis)
-			Debug.drawRay(footCF.Position, axis, true).Color = Color3.new(1,0,0)
-			--Debug.drawRay(footCF.Position, inclineDir, true).Color = Color3.new(0,1,0)
-			local xRot = normal:Dot(target.CFrame.RightVector)
-			local zRot = normal:Dot(target.CFrame.LookVector)
-			if xRot ~= 0 then
-				
-			end
-			--local zRot = math.acos(math.clamp(normal:Dot(target.CFrame.)))
-			--print(math.deg(xRot))
-			IK.Offset = CFrame.new(0,-normal,0)--*CFrame.fromAxisAngle(animCF.RightVector, math.rad(90))
-			--IK.EndEffectorOffset = CFrame.fromAxisAngle(rootCF.RightVector, xRot)
-			--IK.Offset = CFrame.fromAxisAngle(rootCF.UpVector, math.rad(75))
-			--IK.Weight = weight
+			local weight = 1-dist/FOOT_LOCK_DIST
+
+			IK.Enabled = true
+			IK.Target = target
+			IK.Offset = target.CFrame.Rotation:Inverse()
+			IK.EndEffectorOffset = CFrame.fromAxisAngle(axis, -rot)
+			IK.Weight = weight
+
+			-- Debug.drawRay(rayOrigin, rayDirection, true).Color = Color3.new(1,0,0)
+			-- Debug.drawRay(footCF.Position, incline, true).Color = Color3.new(0,0,1)
 		else
 			IK.Enabled = false
-		end
-	end
-end
-
-local function applyFootIK2(rootCF: CFrame, animCF: CFrame, foot: BasePart, ankle: Motor6D)
-	local footCF = rootCF*animCF
-
-	-- Cast ray
-	local footDownV = -footCF.UpVector
-	local rayDirection = (footCF.Position-rootCF.Position)
-	local rayDirU = rayDirection.Unit
-	rayDirection = rayDirection+rayDirU*(foot.Size.Magnitude/2+FOOT_DISTANCE_ANGLE_LOCK_THRESH)
-	local rayOrigin = rootCF.Position
-	local ray = workspace:Raycast(rayOrigin, rayDirection, params)
-	--Debug.drawRay(rayOrigin, rayDirection, true)
-	if ray then
-		local pos, target: BasePart, normal = ray.Position, ray.Instance, ray.Normal
-		local dist = (ray.Position - footCF.Position).Magnitude
-		if dist >= 0 and dist < FOOT_DISTANCE_ANGLE_LOCK_THRESH then
-			--Debug.drawRay(rayOrigin, rayDirection, true).Color = Color3.new(1,0,0)
-
-			local weight = 1-dist/FOOT_DISTANCE_ANGLE_LOCK_THRESH
-			
-			local rot = rootCF.UpVector:Dot(normal)
-			if rot == 1 then return end
-			print(rot)
-			rot = math.acos(rootCF.UpVector:Dot(normal))
-			local axis = rootCF.UpVector:Cross(normal).Unit
-			local incline = axis:Cross(normal)
-			local inclineDir = rootCF.UpVector:Cross(axis).Unit
-			foot.CFrame = CFrame.new(foot.CFrame.Position)
-			Debug.drawRay(footCF.Position, axis, true)
 		end
 	end
 end
@@ -128,8 +83,9 @@ end
 ]]
 local function preIK(dt: number)
 	local animCFs = AssemblyUtil.getAssemblyAnimCFrames(AssemblyUtil.getAssemblyMotors(DUMMY))
-	--applyFootIK(rootPart.CFrame, animCFs[leftFoot], leftFoot.Size, IK['LeftFoot'])
-	applyFootIK2(rootPart.CFrame, animCFs[leftFoot], leftFoot, leftFoot.LeftAnkle)
+	applyFootIK(rootPart.CFrame, animCFs[leftFoot], leftFoot.Size, IK['LeftFoot'])
+	applyFootIK(rootPart.CFrame, animCFs[rightFoot], rightFoot.Size, IK['RightFoot'])
+	--applyFootIK2(rootPart.CFrame, animCFs[leftFoot], leftFoot, leftFoot.LeftAnkle)
 end
 
 local function postIK(dt: number)
