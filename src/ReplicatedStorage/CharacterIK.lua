@@ -8,13 +8,14 @@ local Debug = require(libs.Debug)
 
 local FOOT_LOCK_DIST = .4
 local FOOT_MAXLOCK_DIST = .1
+local LEG_LOCK_THRESH = .12
 
 local CharacterIK = {}
 
 --[[
 	Legs
 ]]
-function CharacterIK.raycastLeg(
+local function raycastFoot(
 	rootCF: CFrame, 
 	footCF: CFrame, 
 	footSize: Vector3, 
@@ -23,8 +24,6 @@ function CharacterIK.raycastLeg(
 	local rayDirection = (footCF.Position-rootCF.Position)
 	rayDirection = rayDirection+rayDirection.Unit*(footSize.Magnitude/2+FOOT_LOCK_DIST)
 	local rayOrigin = rootCF.Position
-	local ray = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-	
 	--[[
 		TODO: IDEA (not super necessary)
 			1. With first ray, check the inclination (normal) of the surface.
@@ -33,28 +32,47 @@ function CharacterIK.raycastLeg(
 				from the foot to the surface.
 			3. Use the second ray for the distance parameter
 	]]
+	local ray = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if not ray then return end
+	local footDist = ray.Position - footCF.Position + footSize*Vector3.yAxis/2
+	local distance = footDist.Unit:Dot(ray.Normal) > 0 and 0 or footDist.Magnitude
+	return ray, distance
+end
 
-	if ray then
-		local footDist = ray.Position - footCF.Position + footSize*Vector3.yAxis/2
-		local distance = footDist.Unit:Dot(ray.Normal) > 0 and 0 or footDist.Magnitude
-		return true, ray.Instance, ray.Normal, distance, ray.Position
-	end
-	return false
+local function raycastLeg(
+	rootCF: CFrame, 
+	footCF: CFrame, 
+	footSize: Vector3, 
+	raycastParams: RaycastParams
+)
+	local footPos = footCF.Position-(footCF.UpVector*footSize.Y/2)
+	local distFromRoot = Vec3.project(footPos-rootCF.Position, rootCF.UpVector)
+	local rayOrigin = footPos-distFromRoot
+	local rayDirection = distFromRoot*5
+	local ray = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if not ray then return end
+
+	local distance = ray.Distance-distFromRoot.Magnitude
+	--Debug.drawRay(rayOrigin, rayDirection, true).Color = Color3.new(0,1,0)
+	return ray, distance
 end
 
 function CharacterIK.setFootIK(
 	IK: IKControl, 
 	rootCF: CFrame, 
-	target: BasePart, 
-	normal: Vector3, 
-	distance: number
+	footCF: CFrame,
+	footSize: Vector3,
+	raycastParams: RaycastParams
 )
-	local angle, rotAxis, weight
-	
 	IK.Enabled = false
+	local ray, distance = raycastLeg(rootCF, footCF, footSize, raycastParams)
+	if not ray then return end
+	local target, normal = ray.Instance, ray.Normal
+	local angle, rotAxis, weight
+
 	if distance > FOOT_LOCK_DIST then return end
 	if rootCF.Position:Dot(normal) == 1 then return end
-
+	
 	angle = math.acos(rootCF.UpVector:Dot(normal))
 	if angle == 1 then return end
 	rotAxis = rootCF.UpVector:Cross(normal).Unit
@@ -63,18 +81,55 @@ function CharacterIK.setFootIK(
 
 	IK.Enabled = true
 	IK.Target = target
-	IK.Offset = target.CFrame.Rotation:Inverse()
-	IK.EndEffectorOffset = CFrame.fromAxisAngle(rotAxis, -angle)
+	IK.Offset = target.CFrame.Rotation:Inverse()*CFrame.fromAxisAngle(rotAxis, angle)*rootCF.Rotation
 	IK.Weight = weight
 
 end
 
-local function setLegIK(
-	IK: IKControl,
+function CharacterIK.setLegIK(
+	legIK: IKControl,
+	footIK: IKControl,
 	rootCF: CFrame, 
-	animCF: CFrame
+	footCF: CFrame,
+	footSize: Vector3,
+	raycastParams: RaycastParams
 )
-	
+	legIK.Enabled = false
+	footIK.Enabled = false
+	local ray, distance = raycastLeg(rootCF, footCF, footSize, raycastParams)
+	if not ray then return end
+	local target, normal, position = ray.Instance, ray.Normal, ray.Position
+	local angle, rotAxis, rotCF
+	local legWeight, footWeight
+
+	-- Set leg IK
+	if distance <= LEG_LOCK_THRESH then
+		legWeight = 1-distance/LEG_LOCK_THRESH
+		legIK.Enabled = true
+		legIK.Target = target
+		legIK.Weight = legWeight
+		legIK.Offset = CFrame.new(target.CFrame:PointToObjectSpace(position+normal*footSize.Y/2))
+	end
+
+	-- Get rotation
+	angle = math.acos(rootCF.UpVector:Dot(normal))
+	if angle == 1 then return end
+	rotAxis = rootCF.UpVector:Cross(normal)
+	if rotAxis.Magnitude == 0 then return end
+	rotAxis = rotAxis.Unit
+	rotCF = target.CFrame.Rotation:Inverse()*CFrame.fromAxisAngle(rotAxis, angle)*rootCF.Rotation
+
+	-- Apply rotation to leg IK (Using IKType = Position wouldn't work so I had to resort to this)
+	legIK.Offset *= rotCF
+
+	-- Set foot IK
+	if distance <= FOOT_LOCK_DIST then
+		footWeight = 1-distance/FOOT_LOCK_DIST
+		footIK.Enabled = true
+		footIK.Target = target
+		footIK.Offset = rotCF
+		footIK.Weight = footWeight
+	end
 end
 
 

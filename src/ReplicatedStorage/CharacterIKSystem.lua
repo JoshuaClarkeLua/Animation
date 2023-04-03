@@ -24,6 +24,7 @@ local function newFootIK(character: Model, leg: 'Left' | 'Right')
 	IKControl.Name = name
 	IKControl.Type = Enum.IKControlType.Rotation
 	IKControl.SmoothTime = 0
+	IKControl.Priority = 3
 	IKControl.ChainRoot = foot
 	IKControl.EndEffector = foot
 	IKControl.Parent = foot
@@ -35,8 +36,9 @@ local function newLegIK(character: Model, leg: 'Left' | 'Right')
 	local foot = character:FindFirstChild(leg..'Foot')
 	local IKControl = Instance.new('IKControl')
 	IKControl.Name = leg..'Leg'
-	IKControl.Type = Enum.IKControlType.Position
+	IKControl.Type = Enum.IKControlType.Transform
 	IKControl.SmoothTime = 0
+	IKControl.Priority = 2
 	IKControl.ChainRoot = upperLeg
 	IKControl.EndEffector = foot
 	IKControl.Parent = upperLeg
@@ -70,24 +72,8 @@ function applyLegIK(
 	local footIK = IK[leg].Foot
 	local legIK = IK[leg].Leg
 
-	--[[
-		Foot Rotation IK
-	]]
-	local enabled, 
-		target, 
-		normal, 
-		distance, 
-		position = CharacterIK.raycastLeg(rootPart, footCF, foot.Size, raycastParams)
-	
-	if enabled then
-		CharacterIK.setFootIK(footIK, rootCF, target, normal, distance)
-	else
-		footIK.Enabled = false
-	end
 
-	--[[
-		Leg Position
-	]]
+	CharacterIK.setLegIK(legIK, footIK, rootCF, footCF, foot.Size, raycastParams)
 end
 
 --[[
@@ -107,10 +93,9 @@ local function initPreIK(character: Model, IK: CharacterIK)
 		local rootPart = character.PrimaryPart
 		local animCFs = AssemblyUtil.getAssemblyAnimCFrames(AssemblyUtil.getAssemblyMotors(character))
 
-		-- Left leg
 		applyLegIK('Left', character, IK, animCFs, raycastParams)
-		-- Right leg
 		applyLegIK('Right', character, IK, animCFs, raycastParams)
+		--CharacterIK.setHipHeight()
 	end
 end
 
