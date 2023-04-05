@@ -33,4 +33,8 @@ function Vec3.projectOnPlane(v: Vector3, n: Vector3)
 	return v - Vec3.project(v, n)
 end
 
+function Vec3.max(va: Vector3, vb: Vector3)
+	return va.Magnitude >= vb.Magnitude and va or vb
+end
+
 return Vec3

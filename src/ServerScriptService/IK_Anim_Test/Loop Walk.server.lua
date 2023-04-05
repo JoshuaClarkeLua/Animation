@@ -12,7 +12,7 @@ local animator = humanoid.Animator
 local animTrack = animator:LoadAnimation(WALK_ANIM)
 
 animTrack.Looped = true
-animTrack:Play(0,1,.05)
+animTrack:Play(0,1,.25)
 
 
 --[[
